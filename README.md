@@ -11,8 +11,7 @@
 - 自动创建 VHDX 并在其中建立 EFI、MSR 和 NTFS 分区
 - 自动挂载 ISO 镜像
 - 自动应用 Windows 映像到 VHDX 并添加 EFI 引导
-- 自动生成并注入 `unattend.xml` 应答文件以跳过 OOBE 流程
-- 支持设置用户名和密码
+- 加载脚本相同目录下的 "autounattend.xml" 作为应答文件个性化 Windows 设置
 - 自动创建并启动虚拟机
 
 ## ⚙️ 可配置项
@@ -26,13 +25,12 @@
 | `$VHDXSize` | 虚拟硬盘最大空间 |
 | `$isoPath` | Windows 安装镜像路径 |
 | `$index` | 安装映像的索引号 |
-| `$userName`, `$password` | 初始账户及密码 |
 
 ## 🚀 快速开始
 
 确保已启用 Hyper-V 并安装 PowerShell 7。然后以管理员身份启动 Powershell 7：
 
-```powershell
+```Administrator: PowerShell 7 (x64)
 Set-ExecutionPolicy RemoteSigned -Scope Process
 .\Deploy-VM.ps1
 ```
