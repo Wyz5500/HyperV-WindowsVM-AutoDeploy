@@ -1,5 +1,5 @@
 #设置虚拟机名称：
-$vmName = "Windows 11"
+$vmName = "Windows VM"
 
 #设置cpu核心数，不能超过主机逻辑核心数。
 $cpuCore = '4'
@@ -8,22 +8,22 @@ $cpuCore = '4'
 $switchName = "Default Switch"
 
 #设置保存虚拟硬盘的目录，末尾要有'\'。
-$VHDXDirPath = "D:\Virtual Hard Disks\"
+$VHDXDirPath = "C:\ProgramData\Microsoft\Windows\Virtual Hard Disks\"
 
 #设置虚拟机虚拟硬盘最大空间，不能超过2048TB，单位可以是'GB'、'TB'。
-$VHDXSize = "64GB"
+$VHDXSize = "1TB"
 
 #设置Windows安装镜像位置。
-$isoPath = "D:\Files\系统\镜像\原版\zh-cn_windows_11_enterprise_ltsc_2024_x64_dvd_cff9cd2d.iso"
+$isoPath = ""
 
-#设置索引，用于指定Windows版本，可以用Dism++查看Windows版本对应的索引。或者使用命令："Dism /Get-ImageInfo /ImageFile:<install.wim/install.esd文件所在路径>"。
-$index = 1
+#设置索引，用于指定Windows版本。微软官网下载的多版本镜像专业版为4，专业工作站版为6，可以用Dism++查看Windows版本对应的索引。或者使用命令："Dism /Get-ImageInfo /ImageFile:<install.wim/install.esd文件所在路径>"。
+$index = 4
 
 #设置Windows用户名，不想选就用"$env:USERNAME"，即当前用户的用户名。可以自己修改，要加双引号。
 $userName = "$env:USERNAME"
 
 #设置Windows用户登录密码。
-$password = "2333"
+$password = ""
 
 #设置为虚拟机启动时分配的内存，不能超过物理机内存上限，一般不需要设置
 #$ram = 8GB
@@ -236,6 +236,7 @@ function startVM {
     Set-VMFirmware -VMName $vmName -FirstBootDevice $VMHD
     Set-VMFirmware -VMName $vmName -EnableSecureBoot On
     Start-VM -VMName $vmName
+    Start-Process -FilePath "vmconnect.exe" -ArgumentList $('"' + $env:COMPUTERNAME + '"'), $('"' + $vmName + '"')
 }
 
 function installWindows {
