@@ -12,12 +12,12 @@ $index = 1
 
 #自动搜索脚本所在目录下的"unattend.xml"作为应答文件
 function unattendProcess {
-    $files = Get-ChildItem -Path $PSScriptRoot
+    $files = Get-ChildItem -Path $PSScriptRoot -Filter *.xml
     foreach ($file in $files) {
         if ($file.Name -eq "autounattend.xml") {
             "在$($PSScriptRoot)中找到应答文件……"
-            New-Item -Path "$($ntfsDriverLetter):\Windows\Panther\" -ItemType Directory
-            $unattendInfo = Copy-Item -Path "$($PSScriptRoot)\autounattend.xml" -Destination "$($ntfsDriverLetter):\Windows\Panther\unattend.xml"
+            $null = New-Item -Path "$($ntfsDriverLetter):\Windows\Panther\" -ItemType Directory
+            $null = Copy-Item -Path "$($PSScriptRoot)\autounattend.xml" -Destination "$($ntfsDriverLetter):\Windows\Panther\unattend.xml"
         }
     }
 }
@@ -30,17 +30,17 @@ function startVM {
         SwitchName = $SwitchName
         VHDPath = $VHDXPath
     }
-    New-VM @VM
+    $null = New-VM @VM
 
     #调整虚拟机设置
     $VMHD = Get-VMHardDiskDrive -VMName $vmName
     Set-VMFirmware -VMName $vmName -FirstBootDevice $VMHD
     Set-VMProcessor -VMName $vmName -Count $cpuCore
     Set-VMFirmware -VMName $vmName -EnableSecureBoot On
-    $VMInfo = Start-VM -VMName $vmName
+    $null = Start-VM -VMName $vmName
 
     #启动虚拟机
-    Start-Process -FilePath "vmconnect.exe" -ArgumentList $('"' + $env:COMPUTERNAME + '"'), $('"' + $vmName + '"')
+    $null = Start-Process -FilePath "vmconnect.exe" -ArgumentList $('"' + $env:COMPUTERNAME + '"'), $('"' + $vmName + '"')
 }
 
 function installWindows {
@@ -55,7 +55,7 @@ function installWindows {
     #新建虚拟硬盘。
     $VHDXPath = "$($VHDXDirPath)$($vmName).vhdx"
     "新建虚拟硬盘……"
-    $VHDXInfo = New-VHD -Path $VHDXPath -SizeBytes $VHDXSize -Dynamic
+    $null = New-VHD -Path $VHDXPath -SizeBytes $VHDXSize -Dynamic
 
     #挂载虚拟硬盘并选中。
     $VHDX = Mount-VHD -Path $VHDXPath -Passthru
@@ -67,12 +67,12 @@ function installWindows {
     #分区，100MB的EFI分区和剩余所有空间的NTFS分区，保存分区对象。
     $efiPartition = New-Partition -DiskNumber $disk.Number -Size 200MB -GptType '{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}' -AssignDriveLetter
     "为虚拟硬盘新建EFI分区……"
-    $efiPartitionInfo = Format-Volume -Partition $efiPartition -FileSystem FAT32 -NewFileSystemLabel 'System' -Force -Confirm:$false
+    $null = Format-Volume -Partition $efiPartition -FileSystem FAT32 -NewFileSystemLabel 'System' -Force -Confirm:$false
     "为虚拟硬盘新建MSR分区……"
-    $msrPartition = New-Partition -DiskNumber $disk.Number -Size 16MB -GptType '{e3c9e316-0b5c-4db8-817d-f92df00215ae}'
+    $null = New-Partition -DiskNumber $disk.Number -Size 16MB -GptType '{e3c9e316-0b5c-4db8-817d-f92df00215ae}'
     $ntfsPartition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -AssignDriveLetter
     "为虚拟硬盘新建NTFS分区……"
-    $ntfsPartitionInfo = Format-Volume -Partition $ntfsPartition -FileSystem NTFS -NewFileSystemLabel $vmName -Force -Confirm:$false
+    $null = Format-Volume -Partition $ntfsPartition -FileSystem NTFS -NewFileSystemLabel $vmName -Force -Confirm:$false
 
     #从分区对象获取EFI分区和NTFS分区卷标。
     $efiDriverLetter = $(Get-Volume -Partition $efiPartition).DriveLetter
@@ -85,19 +85,19 @@ function installWindows {
         Dism /Apply-Image /index:$index /ImageFile:"$wimPath" /ApplyDir:"$($ntfsDriverLetter):\"
         if ($LASTEXITCODE -ne 0) {
             "Windows安装失败，正在清理……"
-            $isoInfo = Dismount-DiskImage -ImagePath $isoPath
+            $null = Dismount-DiskImage -ImagePath $isoPath
             Dismount-VHD -Path $VHDXPath
             Remove-Item -Path $VHDXPath
         } else {
             bcdboot "$($ntfsDriverLetter):\Windows" /s "$($efiDriverLetter):" /f UEFI /l zh-CN
             if ($LASTEXITCODE -ne 0) {
                 "Windows引导添加失败，正在清理……"
-                $isoInfo = Dismount-DiskImage -ImagePath $isoPath
+                $null = Dismount-DiskImage -ImagePath $isoPath
                 Dismount-VHD -Path $VHDXPath
                 Remove-Item -Path $VHDXPath
             } else {
                 unattendProcess
-                $isoInfo = Dismount-DiskImage -ImagePath $isoPath
+                $null = Dismount-DiskImage -ImagePath $isoPath
                 "卸载Windows安装镜像……"
                 Dismount-VHD -Path $VHDXPath
                 "正在启动虚拟机……"
@@ -108,19 +108,19 @@ function installWindows {
         Dism /Apply-Image /index:$index /ImageFile:"$esdPath" /ApplyDir:"$($ntfsDriverLetter):\"
         if ($LASTEXITCODE -ne 0) {
             "Windows安装失败，正在清理……"
-            $isoInfo = Dismount-DiskImage -ImagePath $isoPath
+            $null = Dismount-DiskImage -ImagePath $isoPath
             Dismount-VHD -Path $VHDXPath
             Remove-Item -Path $VHDXPath
         } else {
             bcdboot "$($ntfsDriverLetter):\Windows" /s "$($efiDriverLetter):" /f UEFI /l zh-CN
             if ($LASTEXITCODE -ne 0) {
                 "Windows引导添加失败，正在清理……"
-                $isoInfo = Dismount-DiskImage -ImagePath $isoPath
+                $null = Dismount-DiskImage -ImagePath $isoPath
                 Dismount-VHD -Path $VHDXPath
                 Remove-Item -Path $VHDXPath
             } else {
                 unattendProcess
-                $isoInfo = Dismount-DiskImage -ImagePath $isoPath
+                $null = Dismount-DiskImage -ImagePath $isoPath
                 "卸载Windows安装镜像……"
                 Dismount-VHD -Path $VHDXPath
                 "正在启动虚拟机……"
@@ -129,8 +129,8 @@ function installWindows {
         }
     } else {
         "找不到Windows映像文件，安装失败，正在清理……"
-        $isoInfo = Dismount-DiskImage -ImagePath $isoPath
-        $VHDXInfo = Dismount-VHD -Path $VHDXPath
+        $null = Dismount-DiskImage -ImagePath $isoPath
+        $null = Dismount-VHD -Path $VHDXPath
         Remove-Item -Path $VHDXPath
     }
 }
