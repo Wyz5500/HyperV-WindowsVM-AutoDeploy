@@ -19,18 +19,36 @@
 | 参数 | 说明 |
 |------|------|
 | `$vmName` | 虚拟机名称 |
-| `$cpuCore` | CPU 核心数 |
-| `$switchName` | 虚拟交换机名称 |
-| `$VHDXDirPath` | 虚拟硬盘存储路径 |
-| `$VHDXSize` | 虚拟硬盘最大空间 |
-| `$isoPath` | Windows 安装镜像路径 |
-| `$index` | 安装映像的索引号 |
+| `$cpuCore` | CPU 核心数，不能超过主机 CPU 逻辑核心数 |
+| `$switchName` | 虚拟交换机名称，一般情况下默认即可 |
+| `$VHDXDirPath` | 虚拟硬盘存储路径，默认使用 Hyper-V 的虚拟硬盘路径 |
+| `$VHDXSize` | 虚拟硬盘最大空间，最大支持 64TB |
+| `$isoPath` | Windows 安装镜像路径，".iso" 后缀文件 |
+| `$index` | 安装映像的索引号，决定 Windows 的版本（如：专业版） |
 
-## 🚀 快速开始
+## 🚀 脚本食用指南
 
-确保已启用 Hyper-V 并安装 PowerShell 7。然后以管理员身份启动 Powershell 7：
+❗确保已启用 Hyper-V
 
-```Administrator: PowerShell 7 (x64)
+1. 安装 PowerShell 7 和 Git，如果已经安装可以跳过这一步：
+```
+winget install Microsoft.PowerShell
+winget install Microsoft.Git
+```
+2. 重启终端，设置 Git 的用户名和邮箱，如果已经设置可以跳过这一步：
+```
+#用户名和邮箱可以随便填，也可以填 Github 账号用户名和邮箱
+git config --global user.name <你的用户名>
+git config --global user.email <你的邮箱>
+```
+3. 以管理员身份启动 PowerShell 7，执行命令：
+
+```
+git clone https://github.com/Wyz5500/HyperV-WindowsVM-AutoDeploy.git
+Set-Location HyperV-WindowsVM-AutoDeploy
+```
+4. 修改 Deploy-VM.ps1 内的配置信息，接着运行脚本：
+```
 Set-ExecutionPolicy RemoteSigned -Scope Process
 .\Deploy-VM.ps1
 ```
