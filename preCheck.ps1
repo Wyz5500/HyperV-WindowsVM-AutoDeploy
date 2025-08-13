@@ -35,7 +35,7 @@ function preCheck {
         
         #需要获取信息再检测
         [string]$vmName,                        #检查是否存在同名虚拟机(已完成)
-        [Int16]$cpuCore,                        #大于0，不超过主机CPU核心数量，检测时间较长（已完成）
+        [Int16]$cpuCore,                        #大于0，不超过主机CPU核心数量（已完成）
         [Int64]$memory,                         #不大于物理内存（已完成）
         [Int64]$vhdxSize,                       #至少64GB，物理驱动器剩余空间至少64GB（已完成）
         [string]$switchName,                    #系统中要存在这个虚拟交换机(已完成)
@@ -47,7 +47,11 @@ function preCheck {
     )
 
     #检测主机是否完整安装 Hyper-V，比较耗时间（已完成）
-    $featureEnabled = (Get-WindowsOptionalFeature -Online | Where-Object {$_.FeatureName -eq "Microsoft-Hyper-V-All"}).State
+    #$featureEnabled = (Get-WindowsOptionalFeature -Online | Where-Object {$_.FeatureName -eq "Microsoft-Hyper-V-All"}).State
+
+    #新的检测方法，性能提高数倍
+    $featureEnabled = (Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All).State
+    #$featureEnabled
     if (-not ($featureEnabled -eq "Enabled")) {
         Write-Error "请完整安装并启用 Hyper-V 功能后再运行此脚本"
         exit 0
@@ -66,7 +70,9 @@ function preCheck {
     }
 
     #检查内存分配（已完成）
-    $hostMemory = $(Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory
+    #$hostMemory = $(Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory
+    $hostMemory = $(Get-CimInstance -ClassName Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum
+    #$hostMemory
 
     if ($enableDynamicMemory -eq $true) {
         if ($minMemory -lt 512MB) {
@@ -120,7 +126,8 @@ function preCheck {
     # }
 
     #检测CPU核心数量设置是否合法（已完成）
-    $maxCpuCore = (Get-CimInstance -ClassName Win32_Processor | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum
+    #$maxCpuCore = (Get-CimInstance -ClassName Win32_Processor | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum
+    $maxCpuCore = [System.Environment]::ProcessorCount
 
     if ($cpuCore -gt $maxCpuCore) {
         Write-Error "虚拟机的 CPU 核心数量不能超过 $($maxCpuCore)"
@@ -167,8 +174,8 @@ function preCheck {
         catch {
             Write-Error $_.Exception.Message
 
-            Dismount-VHD -Path $vhdxPath
-            Remove-Item -Path $vhdxPath
+            Dismount-VHD -Path $vhdxPath -ErrorAction SilentlyContinue
+            Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
 
             exit 0;
         }
@@ -191,7 +198,7 @@ function preCheck {
         $VMHD = Get-VMHardDiskDrive -VMName $vmName                                                         #获取虚拟机内部VHDX信息
         Set-VMFirmware -VMName $vmName -FirstBootDevice $VMHD                                               #设置启动固件为VHDX
         Set-VMProcessor -VMName $vmName -Count $cpuCore                                                     #设置CPU核心数量
-        Set-VMFirmware -VMName $vmName -EnableSecureBoot On                                                 #设置虚拟机使用安全启动
+        Set-VMFirmware -VMName $vmName -EnableSecureBoot On -SecureBootTemplate MicrosoftWindows            #设置虚拟机使用安全启动
         Set-VMProcessor -VMName $vmName -ExposeVirtualizationExtensions $exposeVirtualizationExtensions     #开启虚拟机的嵌套虚拟化
 
         if ($enableDynamicMemory -eq $true) {
@@ -224,7 +231,7 @@ function preCheck {
             Start-VM -VMName $vmName -ErrorAction Stop
             Stop-VM -Name $vmName -Force -ErrorAction SilentlyContinue
             Remove-VM $vmName -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path $vhdxPath
+            Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
         }
         catch {
             Write-Error $_.Exception.Message
@@ -241,7 +248,7 @@ function preCheck {
         Write-Error $_.Exception.Message
         Remove-VM $vmName -Force -ErrorAction SilentlyContinue
         #清理虚拟硬盘
-        Remove-Item -Path $vhdxPath
+        Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
         exit 0
     }
 
