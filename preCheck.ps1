@@ -31,13 +31,13 @@ function envCheck {
     $featureEnabled = (Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All).State
     #$featureEnabled
     if (-not ($featureEnabled -eq "Enabled")) {
-        Write-Error "请完整安装并启用 Hyper-V 功能后再使用此脚本"
+        Write-Warning "请完整安装并启用 Hyper-V 功能后再使用此脚本"
         return $false
     }
 
     #检测主机是否开启虚拟化功能
     if (-not ($(Get-CimInstance Win32_ComputerSystem).HypervisorPresent -eq $true)){
-        Write-Error "Hypervisor 没有在运行,可以尝试使用命令 `"BCDEdit /set hypervisorlaunchtype auto`" 修复"
+        Write-Warning "Hypervisor 没有在运行,可以尝试使用命令 `"BCDEdit /set hypervisorlaunchtype auto`" 修复"
         return $false
     }
 
@@ -59,30 +59,30 @@ function memCheck {
 
     if ($enableDynamicMemory -eq $true) {
         if ($minMemory -lt 512MB) {
-            Write-Error "虚拟机的最小内存不能小于 512 MB"
+            Write-Warning "虚拟机的最小内存不能小于 512 MB"
             return $false
         } elseif ($maxMemory -gt 240TB) {
-            Write-Error "虚拟机的最大内存不能超过 240TB"
+            Write-Warning "虚拟机的最大内存不能超过 240TB"
             return $false
         } elseif ($minMemory -gt $maxMemory) {
-            Write-Error "虚拟机的最大内存不能小于虚拟机的最小内存"
+            Write-Warning "虚拟机的最大内存不能小于虚拟机的最小内存"
             return $false
         } elseif ($memory -gt $hostMemory) {
-            Write-Error "虚拟机的启动内存不能超过物理内存"
+            Write-Warning "虚拟机的启动内存不能超过物理内存"
             return $false
         } elseif ($memory -gt $maxMemory) {
-            Write-Error "虚拟机的启动内存不能超过虚拟机的最大内存"
+            Write-Warning "虚拟机的启动内存不能超过虚拟机的最大内存"
             return $false
         } elseif ($minMemory -gt $memory) {
-            Write-Error "虚拟机的启动内存不能小于虚拟机的最小内存"
+            Write-Warning "虚拟机的启动内存不能小于虚拟机的最小内存"
             return $false
         }
     } elseif ($enableDynamicMemory -eq $false) {
         if ($memory -gt $hostMemory) {
-            Write-Error "为虚拟机设置的内存不能超过主机内存"
+            Write-Warning "为虚拟机设置的内存不能超过主机内存"
             return $false
         } elseif ($memory -lt 512MB) {
-            Write-Error "为虚拟机设置的内存不能小于 512MB"
+            Write-Warning "为虚拟机设置的内存不能小于 512MB"
             return $false
         }
     }
@@ -100,13 +100,13 @@ function basicCheck {
 
     #检测虚拟硬盘目录是否存在（已完成）
     if (-not (Test-Path $vhdxDirPath)) {
-        Write-Error "找不到存放虚拟硬盘的目录 `"$($vhdxDirPath)`""
+        Write-Warning "找不到存放虚拟硬盘的目录 `"$($vhdxDirPath)`""
         return $false
     }
 
     #检查是否存在虚拟交换机
     if ($switchName -notin $(Get-VMSwitch).Name) {
-        Write-Error "找不到虚拟网络交换机 `"$($switchName)`""
+        Write-Warning "找不到虚拟网络交换机 `"$($switchName)`""
         return $false
     }
 
@@ -114,10 +114,10 @@ function basicCheck {
     #$maxCpuCore = (Get-CimInstance -ClassName Win32_Processor | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum
     $maxCpuCore = [System.Environment]::ProcessorCount
     if ($cpuCore -gt $maxCpuCore) {
-        Write-Error "虚拟机的 CPU 核心数量不能超过 $($maxCpuCore)"
+        Write-Warning "虚拟机的 CPU 核心数量不能超过 $($maxCpuCore)"
         return $false
     } elseif ($cpuCore -lt 1) {
-        Write-Error "至少需要为虚拟机分配 1 个 CPU 核心（我看你就是来捣乱的(╯▔皿▔)╯）"
+        Write-Warning "至少需要为虚拟机分配 1 个 CPU 核心（我看你就是来捣乱的(╯▔皿▔)╯）"
         return $false
     }
 
@@ -125,7 +125,7 @@ function basicCheck {
     $machines = $(Get-VM).Name
     foreach ($machine in $machines) {
         if ($machine -eq $vmName) {
-            Write-Error "已存在同名虚拟机"
+            Write-Warning "已存在同名虚拟机"
             return $false
         }
     }
@@ -144,7 +144,7 @@ function isoCheck {
 
     #检查iso镜像是否能挂载（已完成）
     if (-not (Test-Path $isoPath)) {
-        Write-Error "找不到 Windows 的安装镜像文件 `"$($isoPath)`"，请设置正确的路径"
+        Write-Warning "找不到 Windows 的安装镜像文件 `"$($isoPath)`"，请设置正确的路径"
         return $false
     } else {
         $windowsImage = $null
@@ -155,7 +155,7 @@ function isoCheck {
             $installer = (Get-Volume -DiskImage $image | Select-Object -First 1)
 
             if(-not $installer) {
-                Write-Error "无法从 iso 镜像文件中获取有效卷"
+                Write-Warning "无法从 iso 镜像文件中获取有效卷"
                 $null = Dismount-DiskImage -ImagePath $isoPath -ErrorAction SilentlyContinue
                 
                 return $false
@@ -164,7 +164,7 @@ function isoCheck {
             #检查 Windows 的体系架构
             $bootFile = "$($installer.DriveLetter):\efi\boot\bootx64.efi"
             if (-not (Test-Path $bootFile)) {
-                Write-Error "该脚本只正式支持 amd64 架构的 Windows 10/11 操作系统"
+                Write-Warning "该脚本只正式支持 amd64 架构的 Windows 10/11 操作系统"
                 $null = Dismount-DiskImage -ImagePath $isoPath -ErrorAction SilentlyContinue
 
                 return $false
@@ -176,7 +176,7 @@ function isoCheck {
             } elseif (Test-Path "$($installer.DriveLetter):\sources\install.esd") {
                 $windowsImage = "$($installer.DriveLetter):\sources\install.esd"
             } else {
-                Write-Error "无法在挂载的 iso 镜像中找到 Windows 系统映像"
+                Write-Warning "无法在挂载的 iso 镜像中找到 Windows 系统映像"
                 $null = Dismount-DiskImage -ImagePath $isoPath -ErrorAction SilentlyContinue
 
                 return $false
@@ -184,25 +184,25 @@ function isoCheck {
 
             try {
                 #检测映像文件中是否包含 Windows 版本信息，没有的话会捕获报错
-                $Script:windowsVersion = Get-WindowsImage -ImagePath $windowsImage | Where-Object {$_.ImageIndex -eq $index} -ErrorAction Stop
-                if ($Script:windowsVersion -eq $null) {
-                    Write-Error "找不到 index 对应的 Windows 版本"
-                    "可用的 Windows 版本和对应索引："
-                    Get-WindowsImage -ImagePath $windowsImage | Select-Object ImageName, ImageIndex
+                $windowsVersion = Get-WindowsImage -ImagePath $windowsImage | Where-Object {$_.ImageIndex -eq $index} -ErrorAction Stop
+                if ($windowsVersion -eq $null) {
+                    Write-Warning "找不到 index 对应的 Windows 版本"
+                    Write-Host "可用的 Windows 版本和对应索引："
+                    Write-Host (Get-WindowsImage -ImagePath $windowsImage | Select-Object ImageName, ImageIndex)
                     $null = Dismount-DiskImage -ImagePath $isoPath -ErrorAction SilentlyContinue
 
                     return $false
                 }
             }
             catch {
-                Write-Error "映像中不包含任何 Windows 版本"
+                Write-Warning "映像中不包含任何 Windows 版本"
                 $null = Dismount-DiskImage -ImagePath $isoPath -ErrorAction SilentlyContinue
 
                 return $false
             }
         }
         catch {
-            Write-Error $_.Exception.Message
+            Write-Warning $_.Exception.Message
             $null = Dismount-DiskImage -ImagePath $isoPath -ErrorAction SilentlyContinue
 
             return $false
@@ -231,21 +231,21 @@ function vhdxCheck {
         $sizeRemaining = ([System.IO.DriveInfo]::GetDrives() | Where-Object {$_.RootDirectory.FullName -eq $driveRoot}).AvailableFreeSpace
     }
     catch {
-        Write-Error $_.Exception.Message
+        Write-Warning $_.Exception.Message
         return $false
     }
 
     if (Test-Path $vhdxPath) {
-        Write-Error "虚拟硬盘文件 `"$($vhdxPath)`" 已存在"
+        Write-Warning "虚拟硬盘文件 `"$($vhdxPath)`" 已存在"
         $success = 0
     } elseif ($sizeRemaining -lt 64GB) {
-        Write-Error "存储虚拟硬盘文件的分区至少需要预留 64GB 用于 Windows 虚拟机正常运行"
+        Write-Warning "存储虚拟硬盘文件的分区至少需要预留 64GB 用于 Windows 虚拟机正常运行"
         $success = 0
     } elseif ($vhdxSize -lt 64GB) {
-        Write-Error "虚拟硬盘的大小不能小于 64GB"
+        Write-Warning "虚拟硬盘的大小不能小于 64GB"
         $success = 0
     } elseif ($vhdxSize -gt 64TB) {
-        Write-Error "虚拟硬盘的大小不能大于 64TB"
+        Write-Warning "虚拟硬盘的大小不能大于 64TB"
         $success = 0
     } else {
         try {
@@ -254,7 +254,7 @@ function vhdxCheck {
             Dismount-VHD -Path $vhdxPath -ErrorAction SilentlyContinue
         }
         catch {
-            Write-Error $_.Exception.Message
+            Write-Warning $_.Exception.Message
             Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
             $success = 0
         }
@@ -310,7 +310,7 @@ function vmCheck {
                 Set-VM -VM $vm -MemoryStartupBytes $memory -DynamicMemory -MemoryMinimumBytes $minMemory -MemoryMaximumBytes $maxMemory -ErrorAction Stop
             }
             catch {
-                Write-Error $_.Exception.Message
+                Write-Warning $_.Exception.Message
                 $success = 0
             }
         } elseif ($enableDynamicMemory -eq $false) {
@@ -318,7 +318,7 @@ function vmCheck {
                 Set-VM -VM $vm -MemoryStartupBytes $memory -StaticMemory -ErrorAction Stop
             }
             catch {
-                Write-Error $_.Exception.Message
+                Write-Warning $_.Exception.Message
                 $success = 0
             }
         }
@@ -329,12 +329,12 @@ function vmCheck {
             Stop-VM -Name $vmName -Force -ErrorAction SilentlyContinue
         }
         catch {
-            Write-Error $_.Exception.Message
+            Write-Warning $_.Exception.Message
             $success = 0
         }
     }
     catch {
-        Write-Error $_.Exception.Message
+        Write-Warning $_.Exception.Message
         $success = 0
     }
 
@@ -417,6 +417,6 @@ if (preCheck @preCheckParams) {
 
     #全部检查通过后的清理流程，正式部署时不需要
     $null = Dismount-DiskImage -ImagePath $isoPath -ErrorAction SilentlyContinue
-    Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
     Remove-VM -Name $vmName -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
 }
