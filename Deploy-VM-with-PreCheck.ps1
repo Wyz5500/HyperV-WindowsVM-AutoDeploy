@@ -1,8 +1,8 @@
 #这些设置需要自己调整：
-$vmName = "Windows 11"
+$vmName = "Windows 10"
 $cpuCore = 8        #不能超出主机逻辑处理器数量
 $vhdxDirPath = "D:\Virtual Hard Disks"
-$isoPath = "D:\Files\系统\镜像\UUP dump\26100.4946_amd64_zh-cn_professional_7eb03c80_convert\26100.4946.250808-1815.GE_RELEASE_SVC_PROD1_CLIENTPRO_OEMRET_X64FRE_ZH-CN.ISO"
+$isoPath = "D:\Files\系统\镜像\原版\zh-cn_windows_10_enterprise_ltsc_2021_x64_dvd_033b7312.iso"
 
 #这些是可选设置：
 $vhdxSize = 64GB        #动态增长，可以设置的比主机剩余硬盘空间大，不能超过64TB。
@@ -648,23 +648,11 @@ if (preCheck @preCheckParams) {
     #全部检查通过后的清理流程，正式部署时不需要
     $null = Dismount-DiskImage -ImagePath $isoPath -ErrorAction SilentlyContinue
     Remove-VM -Name $vmName -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
+    #Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
 
-    if (Test-Path $isoPath) {
-        if (Test-Path $vhdxDirPath) {
-            if (Test-Path $vhdxPath) {
-                "虚拟硬盘文件已经存在……"
-            } else {
-                vhdxCreate      #创建虚拟硬盘
-                vhdxPrepare     #初始化虚拟硬盘，为虚拟硬盘分区
-                isoMount        #挂载iso安装镜像
-                installWindows  #从挂载的iso镜像中安装Windows到虚拟硬盘并添加引导项
-                startVM         #创建并启动虚拟机
-            }
-        } else {
-            "找不到虚拟硬盘存放目录……"
-        }
-    } else {
-        "找不到Windows安装镜像……"
-    }
+    #vhdxCreate      #创建虚拟硬盘
+    vhdxPrepare     #初始化虚拟硬盘，为虚拟硬盘分区
+    isoMount        #挂载iso安装镜像
+    installWindows  #从挂载的iso镜像中安装Windows到虚拟硬盘并添加引导项
+    startVM         #创建并启动虚拟机
 }
