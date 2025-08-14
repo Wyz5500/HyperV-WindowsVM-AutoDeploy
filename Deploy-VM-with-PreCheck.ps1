@@ -1,8 +1,8 @@
 #这些设置需要自己调整：
-$vmName = "Windows 10"
+$vmName = "Windows 11"
 $cpuCore = 8        #不能超出主机逻辑处理器数量
 $vhdxDirPath = "D:\Virtual Hard Disks"
-$isoPath = "D:\Files\系统\镜像\原版\zh-cn_windows_10_enterprise_ltsc_2021_x64_dvd_033b7312.iso"
+$isoPath = "D:\Files\系统\镜像\定制\LTSC 2024\26100.4652\zh-cn_windows_11_enterprise_ltsc_2024_x64_dvd_cff9cd2d.iso"
 
 #这些是可选设置：
 $vhdxSize = 64GB        #动态增长，可以设置的比主机剩余硬盘空间大，不能超过64TB。
@@ -298,7 +298,7 @@ function vmCheck {
 
     #检查虚拟机能否正常创建
     try {
-        $vm = New-VM @vmInfo -ErrorAction Stop
+        $Script:vm = New-VM @vmInfo -ErrorAction Stop
         $VMHD = Get-VMHardDiskDrive -VMName $vmName                                                                         #获取虚拟机内部VHDX信息
         Set-VMFirmware -VMName $vmName -FirstBootDevice $VMHD                                                               #设置启动固件为VHDX
         Set-VMProcessor -VMName $vmName -Count $cpuCore                                                                     #设置CPU核心数量
@@ -307,7 +307,7 @@ function vmCheck {
 
         if ($enableDynamicMemory -eq $true) {
             try {
-                Set-VM -VM $vm -MemoryStartupBytes $memory -DynamicMemory -MemoryMinimumBytes $minMemory -MemoryMaximumBytes $maxMemory -ErrorAction Stop
+                Set-VM -VM $Script:vm -MemoryStartupBytes $memory -DynamicMemory -MemoryMinimumBytes $minMemory -MemoryMaximumBytes $maxMemory -AutomaticCheckpointsEnabled $false -ErrorAction Stop
             }
             catch {
                 Write-Warning $_.Exception.Message
@@ -315,7 +315,7 @@ function vmCheck {
             }
         } elseif ($enableDynamicMemory -eq $false) {
             try {
-                Set-VM -VM $vm -MemoryStartupBytes $memory -StaticMemory -ErrorAction Stop
+                Set-VM -VM $Script:vm -MemoryStartupBytes $memory -StaticMemory -ErrorAction Stop
             }
             catch {
                 Write-Warning $_.Exception.Message
@@ -564,58 +564,7 @@ function unattendProcess {
 
 function startVM {
     if ($Script:successDeploy -eq 1) {
-        #设置虚拟机创建信息
-        $vmInfo = @{
-            Name = $vmName                  #虚拟机名称
-            Generation = 2                  #虚拟机代数
-            SwitchName = $SwitchName        #虚拟交换机名称
-            VHDPath = $vhdxPath             #虚拟硬盘路径
-            MemoryStartupBytes = $memory    #启动时给虚拟机分配的内存大小
-        }
-
-        try {
-            "创建虚拟机……"
-            $vm = New-VM @vmInfo -ErrorAction Stop
-            $VMHD = Get-VMHardDiskDrive -VMName $vmName                                                         #获取虚拟机内部VHDX信息
-            Set-VMFirmware -VMName $vmName -FirstBootDevice $VMHD                                               #设置启动固件为VHDX
-            Set-VMProcessor -VMName $vmName -Count $cpuCore                                                     #设置CPU核心数量
-            Set-VMFirmware -VMName $vmName -EnableSecureBoot On                                                 #设置虚拟机使用安全启动
-            Set-VMProcessor -VMName $vmName -ExposeVirtualizationExtensions $exposeVirtualizationExtensions     #开启虚拟机的嵌套虚拟化
-
-            if ($enableDynamicMemory -eq $true) {
-                try {
-                    Set-VM -VM $vm -MemoryStartupBytes $memory -DynamicMemory -MemoryMinimumBytes $minMemory -MemoryMaximumBytes $maxMemory -ErrorAction Stop
-                }
-                catch {
-                    Write-Warning $_.Exception.Message
-                    "虚拟机设置失败……"
-                    #"删除虚拟机……"
-                    Remove-VM -Name $vmName -Force -ErrorAction SilentlyContinue
-                    #Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
-                    $Script:successDeploy = 0
-                }
-            } elseif ($enableDynamicMemory -eq $false) {
-                try {
-                    Set-VM -VM $vm -MemoryStartupBytes $memory -StaticMemory -ErrorAction Stop
-                }
-                catch {
-                    Write-Warning $_.Exception.Message
-                    "虚拟机设置失败……"
-                    #"删除虚拟机……"
-                    Remove-VM -Name $vmName -Force -ErrorAction SilentlyContinue
-                    #Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
-                    $Script:successDeploy = 0
-                }
-            } else {
-                "内存设置失败……"
-                $Script:successDeploy = 0
-            }
-
-        }
-        catch {
-            Write-Warning $($_.Exception.Message)
-            $Script:successDeploy = 0
-        }
+        Set-VM -VM $Script:vm -AutomaticCheckpointsEnabled $true
         
         if ($Script:successDeploy -eq 1) {
             "启动虚拟机……"
@@ -647,7 +596,7 @@ if (preCheck @preCheckParams) {
 
     #全部检查通过后的清理流程，正式部署时不需要
     $null = Dismount-DiskImage -ImagePath $isoPath -ErrorAction SilentlyContinue
-    Remove-VM -Name $vmName -Force -ErrorAction SilentlyContinue
+    #Remove-VM -Name $vmName -Force -ErrorAction SilentlyContinue
     #Remove-Item -Path $vhdxPath -ErrorAction SilentlyContinue
 
     #vhdxCreate      #创建虚拟硬盘
