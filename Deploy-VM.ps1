@@ -67,7 +67,7 @@ function installWindows {
     )
     Write-Host "挂载 iso 镜像……" -ForegroundColor DarkGray
     $image = Mount-DiskImage -ImagePath $isoPath -PassThru
-    $installer = Get-Volume -DiskImage $image
+    $installer = Get-Volume -DiskImage $image | Select-Object -First 1
     $windowsImage = "$($installer.DriveLetter):\sources\install.esd"
     if (-not (Test-Path $windowsImage)) {
         $windowsImage = "$($installer.DriveLetter):\sources\install.wim"
@@ -103,6 +103,7 @@ function installWindows {
     bcdboot "$windowsPath" /s "$efiDir" /f UEFI /l zh-CN *>$null
     if ($LASTEXITCODE -ne 0) {throw "引导项添加失败……"}
 
+    Write-Host "尝试搜索并应用 Autounattend.xml……" -ForegroundColor DarkGray
     if (Test-Path -Path $unattendedFilePath) {
         $null = New-Item -Path "$($windowsPath)\Panther\" -ItemType Directory
         $null = Copy-Item -Path "$unattendedFilePath" -Destination "$($windowsPath)\Panther\unattend.xml"
