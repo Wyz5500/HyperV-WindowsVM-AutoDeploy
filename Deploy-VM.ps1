@@ -1,8 +1,8 @@
 ##################################################
 
 #设置部分
-$vmName = "Windows 11"
-$isoPath = "D:\Files\系统\镜像\定制\LTSC 2024\26100.4946\zh-cn_windows_11_enterprise_ltsc_2024_x64_dvd_cff9cd2d.iso"
+$vmName = "Windows VM"
+$isoPath = ""
 $imageIndex = 1
 
 ##################################################
