@@ -52,6 +52,10 @@ Set-Location HyperV-WindowsVM-AutoDeploy
 Set-ExecutionPolicy RemoteSigned -Scope Process
 .\Deploy-VM.ps1
 ```
+
+## ©️版权与许可说明
+本项目代码遵循 MIT License。
+
 ## 🔗使用的第三方组件
 
 本项目在映像应用流程中使用了 [wimlib](https://wimlib.net/)（版本 1.14.4）来替代 Windows 原生 DISM 工具，以获得更高的性能。
