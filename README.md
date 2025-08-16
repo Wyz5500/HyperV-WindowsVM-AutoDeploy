@@ -49,7 +49,7 @@ Set-Location HyperV-WindowsVM-AutoDeploy
 ```
 4. 修改 Deploy-VM.ps1 内的配置信息，接着运行脚本：
 ```
-Set-ExecutionPolicy RemoteSigned -Scope Process
+Set-ExecutionPolicy Bypass -Scope Process
 .\Deploy-VM.ps1
 ```
 
