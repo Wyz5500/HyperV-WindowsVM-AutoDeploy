@@ -52,3 +52,15 @@ Set-Location HyperV-WindowsVM-AutoDeploy
 Set-ExecutionPolicy RemoteSigned -Scope Process
 .\Deploy-VM.ps1
 ```
+## 🔗使用的第三方组件
+
+本项目在映像应用流程中使用了 [wimlib](https://wimlib.net/)（版本 1.14.4）来替代 Windows 原生 DISM 工具，以获得更高的性能。
+
+### wimlib 简介
+wimlib 是一个开源的 WIM（Windows Imaging Format）文件读写工具，支持多种压缩算法和跨平台使用。
+
+### 版权与许可
+wimlib 遵循 GNU General Public License v3 (GPL-3.0)。完整许可证请参见：
+[wimlib License](https://github.com/ebiggers/wimlib/blob/master/COPYING.GPLv3).
+
+> **注意**：本项目仅调用 wimlib 的命令行接口，不对其源码做任何修改。

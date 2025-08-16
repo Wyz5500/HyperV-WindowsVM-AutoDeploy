@@ -1,8 +1,8 @@
 ##################################################
 
 #设置部分
-$vmName = "Windows VM"
-$isoPath = ""
+$vmName = "Windows 11"
+$isoPath = "D:\Files\系统\镜像\定制\LTSC 2024\26100.4946\zh-cn_windows_11_enterprise_ltsc_2024_x64_dvd_cff9cd2d.iso"
 $imageIndex = 1
 
 ##################################################
@@ -31,7 +31,8 @@ function vmCreate {
         [string]$vmName,
         [string]$vhdxPath,
         [Int64]$vhdxSize,
-        [string]$switchName
+        [string]$switchName,
+        [Int16]$vmGeneration
     )
     $vmInfo = @{
         Name = $vmName
@@ -67,13 +68,14 @@ function installWindows {
     )
     Write-Host "挂载 iso 镜像……" -ForegroundColor DarkGray
     $image = Mount-DiskImage -ImagePath $isoPath -PassThru
+
+    #定义将要用到的变量
     $installer = Get-Volume -DiskImage $image | Select-Object -First 1
     $windowsImage = "$($installer.DriveLetter):\sources\install.esd"
     if (-not (Test-Path $windowsImage)) {
         $windowsImage = "$($installer.DriveLetter):\sources\install.wim"
     }
-
-    $version = Get-WindowsImage -ImagePath $windowsImage
+    #$version = Get-WindowsImage -ImagePath $windowsImage
 
     Write-Host "挂载虚拟硬盘……" -ForegroundColor DarkGray
     $vhdx = Mount-VHD -Path $vhdxPath -Passthru     #vhdx对象，vhdx的挂载情况
@@ -93,7 +95,10 @@ function installWindows {
     Write-Host "安装 Windows 到虚拟硬盘……" -ForegroundColor DarkGray
     $windowsDir = "$((Get-Volume -Partition $ntfs).DriveLetter):\"
     $null = $windowsDir
-    Dism /Apply-Image /index:"$imageIndex" /ImageFile:"$windowsImage" /ApplyDir:"$windowsDir"
+
+    #Dism /Apply-Image /index:"$imageIndex" /ImageFile:"$windowsImage" /ApplyDir:"$windowsDir"
+    #使用wimlib加速应用映像
+    & "$($PSScriptRoot)\wimlib-imagex.exe" apply "$($windowsImage)" $imageIndex "$($windowsDir)"
     if ($LASTEXITCODE -ne 0) {throw "Windows 安装失败……"}
 
     Write-Host "为虚拟硬盘添加 Windows 启动引导……" -ForegroundColor DarkGray
@@ -130,6 +135,7 @@ $vmCreateParam = @{
     vhdxPath = $vhdxPath
     vhdxSize = $vhdxSize
     switchName = $switchName
+    vmGeneration = $vmGeneration
 }
 $vmSetParam = @{
     vmName = $vmName
@@ -153,11 +159,14 @@ if (Test-Path -Path $vhdxPath) {
     Write-Host "存在同名虚拟机 `"$($vmName)`"……" -ForegroundColor Red
 } else {
     try {
+        $start = Get-Date
         vmCreate @vmCreateParam
         vmSet @vmSetParam
         installWindows @installWindowsParam
         vmStart $vmName
-        Write-Host "虚拟机部署完成" -ForegroundColor Green
+        $end = Get-Date
+        $time = $end - $start
+        Write-Host "虚拟机部署完成，耗时 $([Int16]$($time.TotalSeconds)) 秒" -ForegroundColor Green
     }
     catch {
         Write-Host $_.Exception.Message -ForegroundColor Red
